@@ -1,4 +1,6 @@
 /* see LICENSE file for copyright and license details */
+#include <errno.h>
+#include <fcntl.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -13,7 +15,8 @@
 static void die(const char *fmt, ...);
 static void *ecalloc(size_t nmemb, size_t size);
 
-static void openpage(void);
+static int openpage(void);
+static char *makepath(char *path, char *manpath, char *section);
 
 /* variables */
 static char *page = NULL;
@@ -46,29 +49,43 @@ ecalloc(size_t nmemb, size_t size)
 	return p;
 }
 
-void
+int
 openpage(void) /* TODO $MANPATH env */
 {
 	size_t i, j;
 	char *path;
+	int fd = -1;
 
 	path = ecalloc(BUFSIZ + 1, sizeof(char));
+	errno = 0;
 	for (i = 0; i < LENGTH(manpath); i++) {
 		for (j = 0; section[j]; j++) {
-			/* TODO make prettier */
-			strncpy(path, manpath[i], BUFSIZ/2);
-			strcat(path, "man");
-			strncat(path, section[j], BUFSIZ/4);
-			strcat(path, "/");
-			strncat(path, page, BUFSIZ/4);
-			strcat(path, ".");
-			strncat(path, section[j], BUFSIZ/4);
+			path = makepath(path, manpath[i], section[j]);
 			printf("%s\n", path);
+			if ((fd = open(path, O_RDONLY)) != -1)
+				goto done;
+			/* TODO gziped man pages? */
 		}
 	}
-
-	/* TODO open file for reading */
+done:
 	free(path);
+	return fd;
+}
+
+char *
+makepath(char *path, char *manpath, char *section)
+{
+	strncpy(path, manpath, BUFSIZ/2);
+
+	strcat(path, "man");
+	strncat(path, section, BUFSIZ/4);
+	strcat(path, "/");
+
+	strncat(path, page, BUFSIZ/4);
+	strcat(path, ".");
+	strncat(path, section, BUFSIZ/4);
+
+	return path;
 }
 
 int
@@ -84,7 +101,10 @@ main(int argc, char *argv[])
 		page = argv[1];
 	}
 
-	openpage(); /* TODO fail dies with strerror */
+	if (openpage() < 0)
+		die("mvi: error: %s\n", strerror(errno));
+	else
+		printf("wohoo\n");
 	/* TODO loadpage()? */
 	/* TODO openpipe()? initoutput()? */
 	/* TODO printpage()? */
