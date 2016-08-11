@@ -1,0 +1,2 @@
+# man
+read man pages
