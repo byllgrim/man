@@ -1,5 +1,5 @@
 /* see LICENSE file for copyright and license details */
-static char *manpath[] = { /* must end with '/' */
+static char *manpaths[] = { /* must end with '/' */
 	"/usr/man/",
 	"/usr/share/man/",
 	"/usr/local/man/",
@@ -7,7 +7,7 @@ static char *manpath[] = { /* must end with '/' */
 	"/opt/man/"
 };
 
-static char *pager[] = {
+static char *pagers[] = {
 	"less",
 	"more",
 	"most",

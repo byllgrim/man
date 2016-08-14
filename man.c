@@ -17,14 +17,16 @@
 static void die(const char *fmt, ...);
 static void *ecalloc(size_t nmemb, size_t size);
 
-static int openfile(void);
+static void openfile(void);
 static char *makepath(char *path, char *manpath, char *section);
 static void openpipe(void);
+static void showpage(void);
 
 /* variables */
 static char *page = NULL;
 static char *section[] = {"1", "2", "3", "4", "5", "6", "7", "8", NULL};
 static FILE *output = NULL;
+static FILE *manfile = NULL;
 
 /* function definitions */
 void
@@ -53,26 +55,25 @@ ecalloc(size_t nmemb, size_t size)
 	return p;
 }
 
-int
+void
 openfile(void) /* TODO $MANPATH env */
 {
 	size_t i, j;
 	char *path;
-	int fd = -1;
 
 	path = ecalloc(BUFSIZ + 1, sizeof(char));
-	errno = 0;
-	for (i = 0; i < LENGTH(manpath); i++) {
+	for (i = 0; i < LENGTH(manpaths); i++) {
 		for (j = 0; section[j]; j++) {
-			path = makepath(path, manpath[i], section[j]);
-			if ((fd = open(path, O_RDONLY)) != -1)
+			path = makepath(path, manpaths[i], section[j]);
+			if ((manfile = fopen(path, "r")))
 				goto done;
 			/* TODO gziped man pages? */
 		}
 	}
 done:
 	free(path);
-	return fd;
+	if (!manfile)
+		die("mvi: error: %s\n", strerror(errno));
 }
 
 char *
@@ -97,11 +98,24 @@ openpipe(void)
 	size_t i;
 
 	errno = 0;
-	for (i = 0; !output && i < LENGTH(pager); i++)
-		output = popen(pager[i], "w");
+	for (i = 0; !output && i < LENGTH(pagers); i++)
+		output = popen(pagers[i], "w");
 
 	if (!output)
 		die("man: pager: error: %s\n", strerror(errno));
+}
+
+void
+showpage(void)
+{
+	char s[BUFSIZ];
+
+	fgets(s, BUFSIZ, manfile);
+	while (!feof(manfile)) {
+		fprintf(output, "%s", s);
+		fgets(s, BUFSIZ, manfile);
+		/* TODO parse content */
+	}
 }
 
 int
@@ -117,12 +131,9 @@ main(int argc, char *argv[])
 		page = argv[1];
 	}
 
-	if (openfile() < 0) /* TODO logic inside function? */
-		die("mvi: error: %s\n", strerror(errno));
+	openfile();
 	openpipe();
-	fprintf(output, "Here shall be proper output\n");
-	/* TODO loadpage()? */
-	/* TODO printpage()? */
+	showpage();
 
 	pclose(output);
 	return EXIT_SUCCESS;
