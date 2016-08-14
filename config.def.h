@@ -7,4 +7,10 @@ static char *manpath[] = { /* must end with '/' */
 	"/opt/man/"
 };
 
-/* TODO pager? */
+static char *pager[] = {
+	"less",
+	"more",
+	"most",
+	"pg",
+	"cat"
+};

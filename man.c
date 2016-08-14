@@ -5,6 +5,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+/* TODO ensure no unneeded includes */
 
 #include "config.h"
 
@@ -15,12 +17,14 @@
 static void die(const char *fmt, ...);
 static void *ecalloc(size_t nmemb, size_t size);
 
-static int openpage(void);
+static int openfile(void);
 static char *makepath(char *path, char *manpath, char *section);
+static void openpipe(void);
 
 /* variables */
 static char *page = NULL;
 static char *section[] = {"1", "2", "3", "4", "5", "6", "7", "8", NULL};
+static FILE *output = NULL;
 
 /* function definitions */
 void
@@ -50,7 +54,7 @@ ecalloc(size_t nmemb, size_t size)
 }
 
 int
-openpage(void) /* TODO $MANPATH env */
+openfile(void) /* TODO $MANPATH env */
 {
 	size_t i, j;
 	char *path;
@@ -61,7 +65,6 @@ openpage(void) /* TODO $MANPATH env */
 	for (i = 0; i < LENGTH(manpath); i++) {
 		for (j = 0; section[j]; j++) {
 			path = makepath(path, manpath[i], section[j]);
-			printf("%s\n", path);
 			if ((fd = open(path, O_RDONLY)) != -1)
 				goto done;
 			/* TODO gziped man pages? */
@@ -88,6 +91,19 @@ makepath(char *path, char *manpath, char *section)
 	return path;
 }
 
+void
+openpipe(void)
+{
+	size_t i;
+
+	errno = 0;
+	for (i = 0; !output && i < LENGTH(pager); i++)
+		output = popen(pager[i], "w");
+
+	if (!output)
+		die("man: pager: error: %s\n", strerror(errno));
+}
+
 int
 main(int argc, char *argv[])
 {
@@ -101,13 +117,13 @@ main(int argc, char *argv[])
 		page = argv[1];
 	}
 
-	if (openpage() < 0)
+	if (openfile() < 0) /* TODO logic inside function? */
 		die("mvi: error: %s\n", strerror(errno));
-	else
-		printf("wohoo\n");
+	openpipe();
+	fprintf(output, "Here shall be proper output\n");
 	/* TODO loadpage()? */
-	/* TODO openpipe()? initoutput()? */
 	/* TODO printpage()? */
 
+	pclose(output);
 	return EXIT_SUCCESS;
 }
