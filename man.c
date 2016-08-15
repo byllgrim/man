@@ -146,7 +146,8 @@ parseprint(char *s)
 		fprintf(output, "\n\n");
 		hpos = 0;
 	} else {
-		normalprint(saveptr);
+		if (saveptr[0] != '\0')
+			normalprint(saveptr);
 	}
 }
 
