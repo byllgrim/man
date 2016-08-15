@@ -33,6 +33,7 @@ static char *section[] = {"1", "2", "3", "4", "5", "6", "7", "8", NULL};
 static FILE *output = NULL;
 static FILE *manfile = NULL;
 static size_t hpos = 0;
+static int hangingtag = 0;
 
 /* function definitions */
 void
@@ -140,10 +141,16 @@ parseprint(char *s)
 	if (!strcmp(cmd, ".TH")) { /* TODO is strncmp needed? */
 		titleprint(strtok_r(NULL, " \n", &saveptr));
 	} else if (!strcmp(cmd, ".SH")) {;
+		hangingtag = 0;
 		fprintf(output, "\n\n%s", saveptr);
 		hpos = 0;
 	} else if (!strcmp(cmd, ".P")) { /* TODO or .LP or .PP */
 		fprintf(output, "\n\n");
+		hpos = 0;
+	} else if (!strcmp(cmd, ".TP")) {
+		hangingtag = 2;
+		if (hpos)
+			fputc('\n', output);
 		hpos = 0;
 	} else {
 		if (saveptr[0] != '\0')
@@ -161,6 +168,15 @@ normalprint(char *s)
 			indent();
 		if (s[i] == '\\') /* TODO while? */
 			i++;
+		if (s[i] == '\n' && hangingtag == 2) {
+			hangingtag = 1;
+			if (hpos >= 2*TABSTOP) {
+				fputc('\n', output);
+				hpos = 0;
+			}
+			indent();
+			continue;
+		}
 		if (s[i] == '\n')
 			s[i] = ' ';
 
@@ -190,12 +206,13 @@ void
 indent(void)
 {
 	/* less than hpos%MANWIDTH + something */
-	int i;
+	size_t w;
 
-	for (i = 0; i < TABSTOP; i++)
+	w = hangingtag == 1 ? TABSTOP*2 : TABSTOP;
+	for (; hpos < w; hpos++)
 		fputc(' ', output);
 
-	hpos += TABSTOP;
+	hpos = w;
 }
 
 int
