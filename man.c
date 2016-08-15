@@ -156,11 +156,13 @@ normalprint(char *s)
 {
 	int i;
 
-	for (i = 0; i < MANWIDTH && s[i] != '\n'; i++) {
+	for (i = 0; hpos <= MANWIDTH && s[i] != '\0'; ++i) {
 		if (!hpos)
 			indent();
 		if (s[i] == '\\') /* TODO while? */
 			i++;
+		if (s[i] == '\n')
+			s[i] = ' ';
 
 		fputc(s[i], output);
 		hpos++;
