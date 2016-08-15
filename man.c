@@ -24,6 +24,7 @@ static void showpage(void);
 
 static void parseprint(char *s);
 static void normalprint(char *s);
+static void titleprint(char *s);
 static void indent(void);
 
 /* variables */
@@ -79,6 +80,8 @@ done:
 	free(path);
 	if (!manfile)
 		die("mvi: error: %s\n", strerror(errno));
+	section[0] = section[j];
+	section[1] = NULL;
 }
 
 char *
@@ -133,13 +136,17 @@ parseprint(char *s)
 	char *saveptr;
 
 	cmd = strtok_r(s, " \n", &saveptr);
-	printf("%s ", saveptr);
 
 	if (!strcmp(cmd, ".TH")) { /* TODO is strncmp needed? */
-		fprintf(output, saveptr);
+		titleprint(strtok_r(NULL, " \n", &saveptr));
+	} else if (!strcmp(cmd, ".SH")) {;
+		fprintf(output, "\n\n%s", saveptr);
+		hpos = 0;
 	} else if (!strcmp(cmd, ".P")) { /* TODO or .LP or .PP */
 		fprintf(output, "\n\n");
 		hpos = 0;
+	} else {
+		normalprint(saveptr);
 	}
 }
 
@@ -151,6 +158,8 @@ normalprint(char *s)
 	for (i = 0; i < MANWIDTH && s[i] != '\n'; i++) {
 		if (!hpos)
 			indent();
+		if (s[i] == '\\') /* TODO while? */
+			i++;
 
 		fputc(s[i], output);
 		hpos++;
@@ -158,6 +167,20 @@ normalprint(char *s)
 		if (hpos >= MANWIDTH) /* shouldnt be bigger. ever. */
 			hpos = 0;
 	}
+}
+
+void
+titleprint(char *s)
+{
+	size_t padding, i;
+
+	fprintf(output, "%s(%s)", s, section[0]);
+
+	padding = MANWIDTH - 2*strlen(s) - 6; /* TODO section name? */
+	for (i = 0; i < padding; i++)
+		fputc(' ', output);
+
+	fprintf(output, "%s(%s)", s, section[0]);
 }
 
 void
