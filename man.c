@@ -22,11 +22,16 @@ static char *makepath(char *path, char *manpath, char *section);
 static void openpipe(void);
 static void showpage(void);
 
+static void parseprint(char *s);
+static void normalprint(char *s);
+static void indent(void);
+
 /* variables */
 static char *page = NULL;
 static char *section[] = {"1", "2", "3", "4", "5", "6", "7", "8", NULL};
 static FILE *output = NULL;
 static FILE *manfile = NULL;
+static size_t hpos = 0;
 
 /* function definitions */
 void
@@ -112,10 +117,59 @@ showpage(void)
 
 	fgets(s, BUFSIZ, manfile);
 	while (!feof(manfile)) {
-		fprintf(output, "%s", s);
+		if (s[0] == '.')
+			parseprint(s);
+		else
+			normalprint(s);
+
 		fgets(s, BUFSIZ, manfile);
-		/* TODO parse content */
 	}
+}
+
+void
+parseprint(char *s)
+{
+	char *cmd;
+	char *saveptr;
+
+	cmd = strtok_r(s, " \n", &saveptr);
+	printf("%s ", saveptr);
+
+	if (!strcmp(cmd, ".TH")) { /* TODO is strncmp needed? */
+		fprintf(output, saveptr);
+	} else if (!strcmp(cmd, ".P")) { /* TODO or .LP or .PP */
+		fprintf(output, "\n\n");
+		hpos = 0;
+	}
+}
+
+void
+normalprint(char *s)
+{
+	int i;
+
+	for (i = 0; i < MANWIDTH && s[i] != '\n'; i++) {
+		if (!hpos)
+			indent();
+
+		fputc(s[i], output);
+		hpos++;
+
+		if (hpos >= MANWIDTH) /* shouldnt be bigger. ever. */
+			hpos = 0;
+	}
+}
+
+void
+indent(void)
+{
+	/* less than hpos%MANWIDTH + something */
+	int i;
+
+	for (i = 0; i < TABSTOP; i++)
+		fputc(' ', output);
+
+	hpos += TABSTOP;
 }
 
 int

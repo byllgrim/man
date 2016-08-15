@@ -14,3 +14,6 @@ static char *pagers[] = {
 	"pg",
 	"cat"
 };
+
+#define TABSTOP 8
+#define MANWIDTH 80
