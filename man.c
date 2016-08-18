@@ -163,7 +163,7 @@ normalprint(char *s)
 {
 	int i;
 
-	for (i = 0; hpos <= MANWIDTH && s[i] != '\0'; ++i) {
+	for (i = 0; hpos <= MANWIDTH; ++i) {
 		if (!hpos)
 			indent();
 		if (s[i] == '\\') /* TODO while? */
@@ -182,6 +182,8 @@ normalprint(char *s)
 		if (s[i] == ' ' && (hpos == TABSTOP
 		                    || (hangingtag && hpos == 2*TABSTOP)))
 			i++;
+		if (s[i] == '\0')
+			return;
 
 		fputc(s[i], output);
 		hpos++;
