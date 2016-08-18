@@ -179,6 +179,9 @@ normalprint(char *s)
 		}
 		if (s[i] == '\n')
 			s[i] = ' ';
+		if (s[i] == ' ' && (hpos == TABSTOP
+		                    || (hangingtag && hpos == 2*TABSTOP)))
+			i++;
 
 		fputc(s[i], output);
 		hpos++;
